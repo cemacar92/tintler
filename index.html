@@ -562,7 +562,7 @@ tbody tr:last-child td{border-bottom:none}
    on this browser's storage alone, which is handy for trying things out.
    BURAYA Apps Script web uygulamanızın /exec adresini yapıştırın.       */
 
-const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbwdTL97gQceElJraMbDODx4W7FRnXxfq7n3Hl8rUk7vRYncGKXmLS28EBmbZzwag3AR6w/exec';
+const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbzv4S2wXwZn4MeCfDWyspg4Xf7TUCMf-XY7LcosqATq1WeVvs5yHcmgn9hkselkNv6jJQ/exec';
 
 /* =====================================================================
    THE BACKLOG — single-file front end
@@ -705,6 +705,8 @@ const I18N = {
     'd.notes':'Notes','d.fav':'Favourite','d.status':'Status','d.edit':'Edit','d.saved':'Saved',
     'd.deleted':'Deleted','d.confirm':'Delete this record for good?','d.fetchCover':'Find cover',
     'd.noCover':'No cover found','d.open':'Open source page',
+    'd.needApi':'Connect the Google Sheet first — this lookup runs on the server.',
+    'd.searching':'Searching…',
     'nores':'Nothing matches','nores.sub':'Try clearing the filters or the search box.',
     'empty.t':'This shelf is empty','empty.s':'Log in and import your file to fill it.',
     'loadMore':'Show more','showing':'showing','all':'All','min':'min','max':'max',
@@ -748,6 +750,8 @@ const I18N = {
     'd.notes':'Notlar','d.fav':'Favori','d.status':'Durum','d.edit':'Düzenle','d.saved':'Kaydedildi',
     'd.deleted':'Silindi','d.confirm':'Bu kayıt tamamen silinsin mi?','d.fetchCover':'Kapak bul',
     'd.noCover':'Kapak bulunamadı','d.open':'Kaynak sayfayı aç',
+    'd.needApi':'Önce Google Sheet’i bağla — bu arama sunucu tarafında çalışıyor.',
+    'd.searching':'Aranıyor…',
     'nores':'Sonuç yok','nores.sub':'Filtreleri ya da aramayı temizlemeyi dene.',
     'empty.t':'Bu raf boş','empty.s':'Giriş yapıp dosyanı içe aktar.',
     'loadMore':'Daha fazla göster','showing':'gösterilen','all':'Hepsi','min':'en az','max':'en çok',
@@ -1363,7 +1367,7 @@ function openDetail(secId, rec, isNew){
   }).join('');
 
   const fav = (String(r.Favorite)==='true'||r.Favorite==='TRUE'||r.Favorite==='Yes');
-  const canFetch = (secId==='anime'||secId==='manga') && nz(r['MAL ID']);
+  const canFetch = coverLookupKey(secId, r) !== null;
 
   const importedHTML = S.auth
     ? `<div class="form-grid">${s.imported.map(c=>
@@ -1449,15 +1453,63 @@ async function deleteDetail(){
     S.page==='home'?renderHome():renderSection();
   }catch(e){ toast(String(e.message||e),'err'); }
 }
+/* What each section can be looked up by. null = nothing to go on. */
+function coverLookupKey(secId, r){
+  if(secId==='anime' || secId==='manga') return nz(r['MAL ID']) ? r['MAL ID'] : null;
+  if(secId==='games')  return (nz(r['IGDB ID']) || nz(r['Game name'])) ? (r['IGDB ID']||r['Game name']) : null;
+  if(secId==='screen') return nz(r['Const']) ? r['Const'] : null;
+  if(secId==='books')  return (nz(r['ISBN13'])||nz(r['ISBN'])||nz(r['Title'])) ? (r['ISBN13']||r['ISBN']||r['Title']) : null;
+  return null;
+}
+
+/* MyAnimeList (Jikan) and Open Library answer the browser directly.
+   IGDB and OMDb need a key and send no CORS headers, so those two go
+   through the Apps Script web app. */
 async function fetchCover(){
   const btn = $('#dtFetch'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span>';
+  const sec = DT.sec, r = DT.rec;
   try{
-    const kind = DT.sec==='anime'?'anime':'manga';
-    const id = DT.rec['MAL ID'];
-    const r = await fetch(`https://api.jikan.moe/v4/${kind}/${encodeURIComponent(id)}`);
-    const j = await r.json();
-    const url = j && j.data && j.data.images && (j.data.images.webp?.large_image_url || j.data.images.jpg?.large_image_url);
+    let url = '';
+
+    if(sec==='anime' || sec==='manga'){
+      const res = await fetch(`https://api.jikan.moe/v4/${sec}/${encodeURIComponent(r['MAL ID'])}`);
+      const j = await res.json();
+      const im = j && j.data && j.data.images;
+      url = im && ((im.webp && im.webp.large_image_url) || (im.jpg && im.jpg.large_image_url)) || '';
+
+    }else if(sec==='books'){
+      const isbn = String(r['ISBN13']||r['ISBN']||'').replace(/[^0-9Xx]/g,'');
+      if(isbn){
+        url = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+      }else{
+        const q = encodeURIComponent(String(r.Title||'')+' '+String(r.Author||''));
+        const res = await fetch(`https://openlibrary.org/search.json?q=${q}&limit=1&fields=cover_i`);
+        const j = await res.json();
+        const ci = j && j.docs && j.docs[0] && j.docs[0].cover_i;
+        url = ci ? `https://covers.openlibrary.org/b/id/${ci}-L.jpg` : '';
+      }
+
+    }else{
+      if(!API.connected) throw new Error(t('d.needApi'));
+      const res = await API.post('cover', {
+        section: sec, key: coverLookupKey(sec, r),
+        igdbId: r['IGDB ID'] || '',
+        name:   r['Game name'] || r.Title || '',
+        imdbId: r['Const'] || ''
+      });
+      url = res.url || '';
+    }
+
     if(!url) throw new Error(t('d.noCover'));
+
+    // Keep the picture on your own Drive rather than leaning on someone
+    // else's server. Falls back to the original address if that fails.
+    if(API.connected && !/drive\.google\.com|googleusercontent\.com/.test(url)){
+      try{
+        const m = await API.post('cover', {section:sec, url, key:coverLookupKey(sec, r)});
+        if(m.url) url = m.url;
+      }catch(err){ /* the source address still works */ }
+    }
     $('#dtBody input[data-k="Cover"]').value = url;
     $('.detail-cover .cover').innerHTML = `<img src="${esc(url)}" alt="">`;
   }catch(e){ toast(String(e.message||e),'err'); }
