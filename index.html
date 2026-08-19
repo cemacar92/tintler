@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Media Hub</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="logo" onclick="showTab('home')">🎬 MediaHub</div>
+    <nav class="nav-links">
+      <button onclick="showTab('home')" data-i18n="nav_home">Home</button>
+      <button onclick="showTab('games')" data-i18n="nav_games">Games</button>
+      <button onclick="showTab('anime')" data-i18n="nav_anime">Anime</button>
+      <button onclick="showTab('manga')" data-i18n="nav_manga">Manga</button>
+      <button onclick="showTab('movies_tv')" data-i18n="nav_movies_tv">Movies/TV</button>
+      <button onclick="showTab('books')" data-i18n="nav_books">Books</button>
+    </nav>
+    <div class="right-controls">
+      <!-- Dil Seçimi -->
+      <select id="langSelect" onchange="changeLanguage(this.value)">
+        <option value="en" selected>EN</option>
+        <option value="tr">TR</option>
+      </select>
+
+      <!-- Görünüm Seçimi (Grid / Grid+Name / List) -->
+      <select id="viewSelect" onchange="changeViewMode(this.value)">
+        <option value="grid">Grid (Covers Only)</option>
+        <option value="grid-title">Grid + Title</option>
+        <option value="list">List View</option>
+      </select>
+
+      <!-- Login / Admin Butonu -->
+      <button id="loginBtn" onclick="openLoginModal()" data-i18n="login">Login</button>
+    </div>
+  </header>
+
+  <!-- Content Areas -->
+  <main id="app">
+
+    <!-- HOME PAGE -->
+    <section id="tab-home" class="tab-content active">
+      <h1 data-i18n="home_welcome">My Media Collection</h1>
+      <div class="home-cards">
+        <div class="card" onclick="showTab('games')">🎮 <h2 data-i18n="nav_games">Games</h2></div>
+        <div class="card" onclick="showTab('anime')">⛩️ <h2 data-i18n="nav_anime">Anime</h2></div>
+        <div class="card" onclick="showTab('manga')">📖 <h2 data-i18n="nav_manga">Manga</h2></div>
+        <div class="card" onclick="showTab('movies_tv')">🎬 <h2 data-i18n="nav_movies_tv">Movies & TV</h2></div>
+        <div class="card" onclick="showTab('books')">📚 <h2 data-i18n="nav_books">Books</h2></div>
+      </div>
+    </section>
+
+    <!-- SECTION TEMPLATE (Games, Anime, Manga, Movies/TV, Books) -->
+    <section id="tab-data-view" class="tab-content" style="display:none;">
+      <!-- Controls Bar: Filter, Column Customizer, Import (Admin only) -->
+      <div class="toolbar">
+        <input type="text" id="searchInput" placeholder="Search..." oninput="filterData()">
+        
+        <!-- Kolon Göster/Gizle Menüsü -->
+        <div class="dropdown">
+          <button data-i18n="columns">Columns ⚙️</button>
+          <div id="columnSelector" class="dropdown-content"></div>
+        </div>
+
+        <!-- Admin Özel Alanı: Import -->
+        <div id="adminControls" class="admin-only" style="display:none;">
+          <input type="file" id="importFileInput" style="display:none;" onchange="handleFileImport(event)">
+          <button onclick="document.getElementById('importFileInput').click()" data-i18n="import">Import Data</button>
+        </div>
+      </div>
+
+      <!-- Data Render Container -->
+      <div id="mediaContainer" class="view-grid"></div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
