@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Koleksiyonum</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">◈</span>
+    <h1>Koleksiyonum</h1>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="games">Oyunlar <span class="count" id="count-games"></span></button>
+    <button class="tab-btn" data-tab="anime">Animeler <span class="count" id="count-anime"></span></button>
+    <button class="tab-btn" data-tab="movies">Film &amp; Dizi <span class="count" id="count-movies"></span></button>
+  </nav>
+</header>
+
+<main id="app">
+
+  <!-- Each panel is generated identically by script.js -->
+  <section class="panel active" id="panel-games" data-source="data/games.csv"></section>
+  <section class="panel" id="panel-anime" data-source="data/anime.csv"></section>
+  <section class="panel" id="panel-movies" data-source="data/movies.csv"></section>
+
+</main>
+
+<div class="modal-backdrop" id="colModalBackdrop">
+  <div class="modal" id="colModal">
+    <div class="modal-head">
+      <h2>Sütunları düzenle</h2>
+      <button class="icon-btn" id="colModalClose">✕</button>
+    </div>
+    <div class="modal-actions">
+      <button class="text-btn" id="colSelectAll">Tümünü seç</button>
+      <button class="text-btn" id="colSelectNone">Tümünü kaldır</button>
+    </div>
+    <div class="col-list" id="colList"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
