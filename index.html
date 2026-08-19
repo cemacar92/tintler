@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Media Hub</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -25,14 +26,14 @@
         <option value="tr">TR</option>
       </select>
 
-      <!-- Görünüm Seçimi (Grid / Grid+Name / List) -->
+      <!-- Görünüm Seçimi -->
       <select id="viewSelect" onchange="changeViewMode(this.value)">
         <option value="grid">Grid (Covers Only)</option>
         <option value="grid-title">Grid + Title</option>
         <option value="list">List View</option>
       </select>
 
-      <!-- Login / Admin Butonu -->
+      <!-- Admin Giriş Butonu -->
       <button id="loginBtn" onclick="openLoginModal()" data-i18n="login">Login</button>
     </div>
   </header>
@@ -52,30 +53,41 @@
       </div>
     </section>
 
-    <!-- SECTION TEMPLATE (Games, Anime, Manga, Movies/TV, Books) -->
+    <!-- DATA VIEW TEMPLATE -->
     <section id="tab-data-view" class="tab-content" style="display:none;">
-      <!-- Controls Bar: Filter, Column Customizer, Import (Admin only) -->
       <div class="toolbar">
         <input type="text" id="searchInput" placeholder="Search..." oninput="filterData()">
         
-        <!-- Kolon Göster/Gizle Menüsü -->
+        <!-- Kolon Seçim Menüsü -->
         <div class="dropdown">
           <button data-i18n="columns">Columns ⚙️</button>
           <div id="columnSelector" class="dropdown-content"></div>
         </div>
 
-        <!-- Admin Özel Alanı: Import -->
+        <!-- Admin Paneli (İçe Aktarma) -->
         <div id="adminControls" class="admin-only" style="display:none;">
-          <input type="file" id="importFileInput" style="display:none;" onchange="handleFileImport(event)">
+          <input type="file" id="importFileInput" style="display:none;" accept=".csv, .xml" onchange="handleFileImport(event)">
           <button onclick="document.getElementById('importFileInput').click()" data-i18n="import">Import Data</button>
         </div>
       </div>
 
-      <!-- Data Render Container -->
+      <!-- Medya Kartları / Tablo Alanı -->
       <div id="mediaContainer" class="view-grid"></div>
     </section>
 
   </main>
+
+  <!-- Login Modal -->
+  <div id="loginModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h2>Admin Login</h2>
+      <input type="password" id="adminPassword" placeholder="Enter Password">
+      <div class="modal-buttons">
+        <button onclick="submitLogin()">Login</button>
+        <button onclick="closeLoginModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
