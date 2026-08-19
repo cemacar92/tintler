@@ -1,1 +1,172 @@
-test
+# The Backlog — Kurulum Rehberi
+
+Üç parça var:
+
+| Parça | Görevi | Nerede durur |
+|---|---|---|
+| **Google Sheet** | Veritabanı. Her bölüm ayrı sekme. | Google Drive |
+| **Code.gs** (Apps Script) | Sheet'i okuyup yazan mini API. Şifreyi burası doğrular. | Sheet'e bağlı |
+| **index.html** | Sitenin tamamı. Tek dosya, derleme yok. | GitHub Pages |
+
+Ziyaretçi siteye girdiğinde Apps Script'ten veriyi **okur**. Sağ üstten şifreyle giriş yaptığınızda **yazma** açılır.
+
+---
+
+## 1. Google Sheet'i oluştur
+
+1. [sheets.new](https://sheets.new) adresinden yeni bir tablo aç.
+2. Adını **Backlog DB** koy.
+3. Şimdilik başka bir şey yapma; sekmeleri script kendisi kuracak.
+
+## 2. Apps Script'i kur
+
+1. Aynı tabloda **Uzantılar ▸ Apps Script**.
+2. Açılan `Code.gs` dosyasının içindekileri sil, bu paketteki **Code.gs**'i olduğu gibi yapıştır.
+3. **Kaydet** (💾).
+4. Üstteki fonksiyon listesinden **`setup`** seç, **Çalıştır**'a bas.
+   - İlk çalıştırmada Google izin isteyecek: *Yetkileri incele ▸ hesabını seç ▸ Gelişmiş ▸ (proje adı)'na git ▸ İzin ver*.
+   - "Doğrulanmamış uygulama" uyarısı normaldir; script sana ait.
+5. Tabloya dön: `Games`, `Anime`, `Manga`, `FilmTV`, `Books` sekmeleri başlık satırlarıyla oluşmuş olacak.
+
+## 3. Şifreyi belirle
+
+1. Apps Script ekranında sol menüden **Proje ayarları** (⚙).
+2. En altta **Komut dosyası özellikleri ▸ Komut dosyası özelliği ekle**.
+3. Özellik: `PASSWORD` — Değer: *seçtiğin şifre*. **Kaydet**.
+
+> Şifreyi kod dosyasının içine yazma; burada durması yeterli ve daha güvenli.
+
+## 4. Web uygulaması olarak yayınla
+
+1. Sağ üstte **Dağıt ▸ Yeni dağıtım**.
+2. Tür seç (⚙) ▸ **Web uygulaması**.
+3. Ayarlar:
+   - **Yürüten:** Ben (kendi hesabın)
+   - **Erişimi olan:** **Herkes** ← bu şart, yoksa site veriyi okuyamaz
+4. **Dağıt** ▸ URL'yi kopyala. Şuna benzer:
+   `https://script.google.com/macros/s/AKfyc.../exec`
+
+## 5. Adresi index.html'e yaz
+
+`index.html` dosyasını bir metin düzenleyiciyle aç, **569. satır civarındaki** şu satırı doldur:
+
+```js
+const DEFAULT_API = 'https://script.google.com/macros/s/AKfyc.../exec';
+```
+
+Bu adres sitenin **okuma** adresidir; şifre içermez, ziyaretçinin görmesinde sakınca yoktur. Yazma işlemleri yalnızca şifreyle üretilen bir oturum anahtarıyla yapılır.
+
+## 6. GitHub Pages'te yayınla
+
+1. GitHub'da yeni bir depo aç (örn. `backlog`), **Public** olsun.
+2. `index.html` dosyasını yükle (**Add file ▸ Upload files ▸ Commit**).
+3. **Settings ▸ Pages**:
+   - Source: **Deploy from a branch**
+   - Branch: `main`, klasör `/ (root)` ▸ **Save**
+4. 1–2 dakika sonra site şurada: `https://kullaniciadin.github.io/backlog/`
+
+> Kendi alan adını bağlayacaksan: Pages sayfasındaki **Custom domain** alanına yaz, alan adı sağlayıcında `CNAME` kaydını `kullaniciadin.github.io`'ya yönlendir.
+
+## 7. Giriş yap
+
+1. Siteyi aç, sağ üstten **Log in**.
+2. Web App adresi alanı zaten dolu gelir; **şifreyi** gir.
+3. Yeşil nokta yanınca yazma açıktır: **Add record**, düzenleme ve **Import** görünür hale gelir.
+
+Oturum 8 saat sürer. Süre dolunca tekrar giriş yaparsın.
+
+---
+
+## 8. İlk içe aktarmalar
+
+Her bölümün **kendi** import'u var; üst sağdaki **Import** düğmesi hangi sekmedeysen o bölüme çalışır.
+
+| Bölüm | Beklenen dosya | Eşleştirme anahtarı |
+|---|---|---|
+| **Games** | `InfiniteBacklog_GameCollection_*.csv` | IGDB ID + Platform + Sürüm + Dijital servis |
+| **Anime** | `animelist_*.xml` (MyAnimeList export) | MAL ID |
+| **Manga** | `mangalist_*.xml` (MyAnimeList export) | MAL ID |
+| **Film & TV** | IMDb `ratings.csv` / liste CSV'si | Const (tt numarası) |
+| **Books** | Goodreads `goodreads_library_export.csv` | Book Id (yoksa ISBN13 / Başlık+Yazar) |
+
+Sırayla:
+
+1. Sekmeye geç ▸ **Import**.
+2. Dosyayı sürükle ya da tıklayıp seç.
+3. Önizleme çıkar: **Yeni / Güncellenen / Değişmeyen** sayıları.
+4. **İçe aktar**'a bas. Oyunlar gibi büyük dosyalar 400'lük parçalar halinde gider, ilerleme çubuğu görünür.
+
+İlk aktarım sonrası tablonda: 2.140 oyun, 553 anime, 56 manga, 345 film/dizi olacak.
+
+## 9. Kapaklar ve sezon/bölüm bilgisi neden bozulmaz
+
+Her sekmede iki tür sütun var:
+
+- **Dosyadan gelen sütunlar** — her import bunları tazeler.
+- **Sana ait sütunlar** — import bunlara **hiç dokunmaz**:
+
+| Bölüm | Korunan sütunlar |
+|---|---|
+| Games | `Cover`, `Favorite`, `Notes` |
+| Anime | `Cover`, **`Season`**, **`Episode`**, `Favorite`, `Notes` |
+| Manga | `Cover`, **`Volume`**, **`Chapter`**, `Favorite`, `Notes` |
+| Film & TV | `Cover`, **`Season`**, **`Episode`**, `Status`, `Favorite`, `Notes` |
+| Books | `Cover`, **`Page`**, `Status`, `Favorite`, `Notes` |
+
+Mekanizma şu: her satırın değişmeyen bir `_id`'si var. Import gelen kaydı yukarıdaki anahtarla bulur, **yalnızca dosyadan gelen sütunları** yazar, korunan sütunları olduğu gibi bırakır. Dosyada olmayan bir kayıt varsa satır silinmez; sadece yeni gelenler eklenir.
+
+Kapak eklemek için: bir karta tıkla ▸ **Cover image URL** alanına görsel adresini yapıştır ▸ **Kaydet**. Anime ve mangada **Find cover** düğmesi kapağı MyAnimeList'ten (Jikan API) otomatik çeker.
+
+## 10. Günlük kullanım
+
+- **Görünüm:** araç çubuğundaki üç simge — sadece kapaklar / kapak + isim / satır satır liste.
+- **Sütunlar:** ▦ Columns ▸ istediğini işaretle-kaldır. Liste görünümünü *ve* Excel çıktısını belirler, tarayıcında saklanır.
+- **Filtreler:** ⚙ Filters ▸ platform, durum, tür, puan aralığı, yıl aralığı, sadece favoriler. Aktif filtreler altta rozet olarak görünür, tek tıkla kalkar.
+- **Sıralama:** açılır listeden alan seç, ok düğmesiyle yön değiştir. Liste görünümünde sütun başlığına tıklamak da sıralar.
+- **Export:** **Export to Excel** o an **ekranda görünen** (filtrelenmiş) kayıtları ve **seçili sütunları** `.xlsx` olarak indirir; başlık satırında otomatik filtre açık gelir.
+- **İstatistikler:** üstteki **Statistics** sekmesi. Sağ üstteki seçiciyle tüm kütüphane ya da tek bölüm. Puan dağılımı, durum dağılımı, çıkış yılı, platformlar, türler, en yüksek puanlılar.
+- **Dil:** sağ üstte EN / TR. Varsayılan İngilizce, seçimin tarayıcında kalır.
+
+## 11. Listeni güncelleme rutini
+
+Kaynak sitelerden yeni export al ▸ ilgili sekmede **Import** ▸ dosyayı bırak ▸ onayla. Haftada bir de yapsan kapakların, sezon/bölüm takibin ve notların yerinde kalır.
+
+---
+
+## Sorun giderme
+
+**Site açılıyor ama liste boş**
+`DEFAULT_API` satırını doldurdun mu, dağıtımda "Erişimi olan: Herkes" seçili mi? Apps Script URL'sini tarayıcıda tek başına aç: `{"ok":true,"sections":…}` görmelisin.
+
+**"Not logged in — log in again."**
+Oturum anahtarının süresi dolmuş. Sağ üstten çıkıp tekrar giriş yap.
+
+**Giriş yaparken "Şifre hatalı"**
+`PASSWORD` özelliğini Proje ayarları'na eklemeyi unutmuş olabilirsin ya da script'i güncelledikten sonra **yeni dağıtım** yapmadın.
+
+**Code.gs'i değiştirdim, site eski davranıyor**
+Apps Script'te **Dağıt ▸ Dağıtımları yönet ▸ ✏ ▸ Sürüm: Yeni sürüm ▸ Dağıt**. Aynı URL kalır.
+
+**Aynı dosyada aynı kayıt iki kez varsa**
+Sorun çıkarmaz; ikinci satır birincinin üzerine yazılır ve tek kayıt kalır. IMDb listende `Miracle Workers` (tt7529770) böyle iki kez geçiyor — her aktarımda o satır "güncellendi" sayılır, kopya oluşmaz.
+
+**Import ortasında hata**
+Parça parça yazdığı için o ana kadarki kayıtlar tabloya işlenmiştir. Aynı dosyayı tekrar aktar; anahtar eşleşmesi sayesinde kopya oluşmaz.
+
+**Tabloda `_id` boş satırlar var (elle satır eklediysen)**
+Apps Script'te `backfillIds` fonksiyonunu bir kez çalıştır.
+
+**Kopya kayıt oluştu**
+`dedupe('anime', ['MAL ID'])` gibi çağırarak temizleyebilirsin (editörde fonksiyonu düzenleyip çalıştır).
+
+---
+
+## Yapıyı değiştirmek istersen
+
+Yeni bir sütun eklemek: `index.html` içindeki `SECTIONS` bloğunda ilgili bölümün `imported` (dosyadan gelen) ya da `local` (senin, korunan) listesine adı ekle; aynı adı `Code.gs` içindeki `SCHEMA` listesine de yaz. Sheet'e sütun ilk yazışta otomatik eklenir, mevcut veri bozulmaz.
+
+Yeni bir bölüm eklemek: `SECTIONS`'a yeni bir anahtar, `PARSERS`'a dosya okuyucusu, `I18N`'e `nav.*` ve `sec.*` metinleri, `Code.gs`'deki `SCHEMA`'ya sekme adı ve sütunlar.
+
+## Güvenlik notu
+
+Şifre HTTPS üzerinden gider ve yalnızca Script Properties'te tutulur; siteye gömülü değildir. Yine de bu, kişisel bir arşiv için tasarlanmış hafif bir korumadır — banka seviyesi bir kimlik doğrulama değil. Sheet'i kimseyle paylaşma; yayınlanan tek şey Apps Script'in okuma ucudur.
