@@ -157,13 +157,13 @@ main{position:relative;z-index:1;min-height:calc(100vh - var(--topbar-h))}
 .spine-inner{position:relative;z-index:2;width:100%}
 .spine-label{
   font-family:var(--display);font-weight:800;font-variation-settings:"wdth" 78;
-  font-size:clamp(15px,1.5vw,22px);letter-spacing:-.02em;line-height:1.05;
+  font-size:clamp(22px,2.6vw,38px);letter-spacing:-.03em;line-height:1.05;
   writing-mode:vertical-rl;transform:rotate(180deg);
   position:absolute;bottom:100%;left:50%;margin-left:-.5em;margin-bottom:14px;
   white-space:nowrap;transition:.35s;
 }
 .spine-count{
-  font-family:var(--mono);font-size:clamp(22px,3vw,34px);font-weight:700;
+  font-family:var(--mono);font-size:clamp(24px,3.2vw,38px);font-weight:700;
   color:var(--sp);line-height:1;display:block;
 }
 .spine-unit{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2);margin-top:6px;display:block}
@@ -171,7 +171,7 @@ main{position:relative;z-index:1;min-height:calc(100vh - var(--topbar-h))}
   .shelf{flex-direction:column;height:auto;gap:8px}
   .spine{flex:none;height:76px;align-items:center;justify-content:space-between;padding:0 18px;text-align:left}
   .spine:hover,.spine:focus-visible{flex:none}
-  .spine-label{writing-mode:horizontal-tb;transform:none;position:static;margin:0;font-size:19px}
+  .spine-label{writing-mode:horizontal-tb;transform:none;position:static;margin:0;font-size:24px}
   .spine-inner{display:flex;align-items:center;justify-content:space-between}
   .spine-count{font-size:24px}
   .spine-unit{display:none}
@@ -458,10 +458,6 @@ tbody tr:last-child td{border-bottom:none}
       </div>
       <div class="shelf" id="shelf"></div>
       <div class="home-strip" id="homeStrip"></div>
-      <div class="home-recent">
-        <div class="sub-h" data-i18n="home.recent">Recently added</div>
-        <div class="grid-covers" id="homeRecent"></div>
-      </div>
     </div>
   </section>
 
@@ -566,7 +562,7 @@ tbody tr:last-child td{border-bottom:none}
    on this browser's storage alone, which is handy for trying things out.
    BURAYA Apps Script web uygulamanızın /exec adresini yapıştırın.       */
 
-const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbxh2P8q6E3c8Hvu4H7PH1Szs_moVmX6OP6aOeZwC5SnRKpeA7mZR96kg7T4wt1qa_I3yw/exec';
+const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbwdTL97gQceElJraMbDODx4W7FRnXxfq7n3Hl8rUk7vRYncGKXmLS28EBmbZzwag3AR6w/exec';
 
 /* =====================================================================
    THE BACKLOG — single-file front end
@@ -587,7 +583,7 @@ const SECTIONS = {
     accept:'.csv', fileHint:'InfiniteBacklog_GameCollection_YYYY-MM-DD.csv',
     key:['IGDB ID','Platform','Game Edition name','Digital service'],
     title:'Game name', sub:'Platform', score:'Rating (Score)', scoreMax:10,
-    status:'Status', year:'Game release date', added:'Date added',
+    status:'Status', statStatus:'Completion', year:'Game release date', added:'Date added',
     imported:['IGDB ID','Game name','Game release date','IGDB Edition ID','Game Edition name','Platform','Type','Status','Completion','Ownership','Acquisition','State','Format','Digital service','Subscription','Playtime','Times completed','Completion date','Completion date type','Progress notes','Borrowed from','Returned to owner','Lent to','Lent out','Condition','Region','Collection notes','Amount paid','Acquisition date','Acquisition Source','Additional Cost','Game condition','Manual condition','Box condition','Manual progress','Acquisition Notes','Rating (Score)','Rating (Gameplay)','Rating (Sound)','Rating (Story)','Rating (Visual)','Rating (Accessibility)','Tags','Date added','Last updated'],
     local:[...LOCAL_COMMON],
     defaultCols:['Cover','Game name','Platform','Status','Completion','Playtime','Rating (Score)','Game release date'],
@@ -1099,32 +1095,19 @@ function renderHome(){
   $$('#shelf .spine').forEach(b=> b.onclick=()=>go(b.dataset.go));
 
   const all = SEC_IDS.flatMap(id=> S.data[id].map(r=>({r, s:SECTIONS[id], id})));
-  const scored = all.map(x=>{
-    const v = numOf(x.r[x.s.score]);
-    return v==null?null:(v/x.s.scoreMax)*10;
-  }).filter(v=>v!=null);
   const hours = S.data.games.reduce((a,r)=> a+(numOf(r.Playtime)||0),0)/60;
   const eps = S.data.anime.reduce((a,r)=> a+(numOf(r['Watched Episodes'])||0),0);
-  const covers = all.filter(x=> nz(x.r.Cover)).length;
+  const chapters = S.data.manga.reduce((a,r)=> a+(numOf(r['Read Chapters'])||0),0);
 
   const cells = [
     [t('home.total'), all.length.toLocaleString(S.lang)],
-    [t('home.rated'), scored.length.toLocaleString(S.lang)],
-    [t('home.avg'), scored.length? (scored.reduce((a,b)=>a+b,0)/scored.length).toFixed(1)+' / 10' : '—'],
     [t('home.hours'), Math.round(hours).toLocaleString(S.lang)],
     [t('home.eps'), eps.toLocaleString(S.lang)],
-    [t('home.covers'), covers.toLocaleString(S.lang)]
+    [t('k.chapters'), chapters.toLocaleString(S.lang)]
   ];
   $('#homeStrip').innerHTML = cells.map(([k,v])=>
     `<div class="strip-cell"><div class="strip-k">${esc(k)}</div><div class="strip-v">${esc(v)}</div></div>`).join('');
 
-  const recent = all.slice().sort((a,b)=>{
-    const da = a.r[a.s.added]||a.r['Last updated']||'', db = b.r[b.s.added]||b.r['Last updated']||'';
-    return String(db).localeCompare(String(da));
-  }).slice(0,18);
-  $('#homeRecent').innerHTML = recent.map(x=> coverCard(x.id, x.r, false)).join('') ||
-    `<div class="empty" style="grid-column:1/-1"><h3>${esc(t('empty.t'))}</h3><p>${esc(t('empty.s'))}</p></div>`;
-  bindCards($('#homeRecent'));
 }
 
 /* ---------- 9. CARDS -------------------------------------------------- */
@@ -1519,7 +1502,6 @@ function openImport(){
   IMP = {rows:[], plan:null};
   $('#impHead').textContent = t('import.title') + ' · ' + t('sec.'+secId);
   $('#impBody').innerHTML = `
-    <p class="section-hint">${esc(t('import.keep'))}</p>
     <div class="drop" id="dropZone">
       <div style="font-size:30px">📄</div>
       <h4>${esc(t('import.drop'))}</h4>
@@ -1655,13 +1637,13 @@ const normScore = (r,s)=>{ const v=numOf(r[s.score]); return (v==null||v<=0)?nul
 
 function renderStats(){
   chartDefaults();
-  const keep = $('#statScope').value || 'all';
-  $('#statScope').innerHTML = `<option value="all">${esc(t('stats.all'))}</option>`+
+  const keep = SEC_IDS.includes($('#statScope').value) ? $('#statScope').value : SEC_IDS[0];
+  $('#statScope').innerHTML =
     SEC_IDS.map(id=>`<option value="${id}" ${keep===id?'selected':''}>${esc(t('sec.'+id))}</option>`).join('');
   $('#statScope').value = keep;
   S.charts.forEach(c=>{ try{c.destroy();}catch(e){} }); S.charts = [];
-  const scope = $('#statScope').value || 'all';
-  const secs = scope==='all' ? SEC_IDS : [scope];
+  const scope = $('#statScope').value || SEC_IDS[0];
+  const secs = [scope];
   const items = secs.flatMap(id=> S.data[id].map(r=>({r, s:SECTIONS[id], id})));
   $('#statsMeta').textContent = `${items.length.toLocaleString(S.lang)} ${t('stats.of')}`;
 
@@ -1678,18 +1660,16 @@ function renderStats(){
   if(secs.includes('screen')) kpi.push([t('k.runtime'), Math.round(sumOf(S.data.screen,'Runtime (mins)')/60).toLocaleString(S.lang), '#E4795B']);
   if(secs.includes('books')) kpi.push([t('k.pages'), sumOf(S.data.books,'Page').toLocaleString(S.lang), '#7B8FE8']);
   kpi.push([t('k.completed'), items.filter(x=> /complet|finish|played|watched|read$/i.test(String(x.r[x.s.status]||'')+String(x.r.Completion||''))).length.toLocaleString(S.lang), '#63C08C']);
-  kpi.push([t('k.covers'), items.filter(x=> nz(x.r.Cover)).length.toLocaleString(S.lang), '#8E9BB3']);
   $('#kpis').innerHTML = kpi.map(([k,v,c])=>`<div class="kpi" style="--kc:${c}"><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join('');
 
   /* chart cards */
   const cards = [];
-  if(scope==='all') cards.push({id:'c1', title:t('c.byType'), kind:'doughnut'});
-  cards.push({id:'c2', title:t('c.scores'), kind:'bar', span:scope!=='all'});
+  cards.push({id:'c2', title:t('c.scores'), kind:'bar', span:true});
   cards.push({id:'c3', title:t('c.status'), kind:'doughnut'});
   cards.push({id:'c4', title:t('c.year'), kind:'bar', span:true});
-  if(secs.includes('games') && scope!=='screen') cards.push({id:'c5', title:t('c.platform'), kind:'hbar'});
-  if(secs.includes('screen')) cards.push({id:'c6', title:t('c.genres'), kind:'hbar'});
-  if(secs.includes('anime') && scope!=='games') cards.push({id:'c7', title:t('c.animeType'), kind:'doughnut'});
+  if(scope==='games')  cards.push({id:'c5', title:t('c.platform'), kind:'hbar'});
+  if(scope==='screen') cards.push({id:'c6', title:t('c.genres'), kind:'hbar'});
+  if(scope==='anime')  cards.push({id:'c7', title:t('c.animeType'), kind:'doughnut'});
   cards.push({id:'c8', title:t('c.top'), kind:'hbar', span:true});
 
   $('#charts').innerHTML = cards.map(c=>
@@ -1700,13 +1680,6 @@ function renderStats(){
   const gridX = {grid:{color:'#222836'}, ticks:{maxRotation:0, autoSkip:true}};
   const gridY = {grid:{color:'#222836'}, beginAtZero:true};
 
-  if(scope==='all'){
-    mk('c1', {type:'doughnut', data:{
-      labels: SEC_IDS.map(id=>t('sec.'+id)),
-      datasets:[{data:SEC_IDS.map(id=>S.data[id].length), backgroundColor:SEC_IDS.map(id=>SECTIONS[id].color), borderColor:'#151920', borderWidth:2}]
-    }, options:{plugins:{legend:{position:'right'}}, cutout:'58%', maintainAspectRatio:false}});
-  }
-
   /* score distribution — bucketed on a 0–10 scale */
   const buckets = new Array(10).fill(0);
   items.forEach(x=>{ const v=normScore(x.r,x.s); if(v!=null) buckets[Math.min(9, Math.max(0, Math.ceil(v)-1))]++; });
@@ -1715,7 +1688,7 @@ function renderStats(){
     datasets:[{data:buckets, backgroundColor:'#E3B23C', borderRadius:4}]
   }, options:{plugins:{legend:{display:false}}, scales:{x:gridX,y:gridY}, maintainAspectRatio:false}});
 
-  const st = topN(countBy(items, x=> String(x.r[x.s.status]||'').trim()), 8);
+  const st = topN(countBy(items, x=> String(x.r[x.s.statStatus || x.s.status]||'').trim()), 8);
   mk('c3', {type:'doughnut', data:{
     labels: st.map(a=>a[0]),
     datasets:[{data:st.map(a=>a[1]), backgroundColor:PALETTE, borderColor:'#151920', borderWidth:2}]
@@ -1795,8 +1768,6 @@ async function bootData(){
 }
 
 (async function init(){
-  $('#statScope').innerHTML = `<option value="all">${esc(t('stats.all'))}</option>`+
-    SEC_IDS.map(id=>`<option value="${id}">${esc(t('sec.'+id))}</option>`).join('');
   if(!S.api) S.api = DEFAULT_API;
   S.auth = !!S.token;
   applyLang();
