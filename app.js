@@ -1,5 +1,5 @@
 // Google Apps Script Deploy URL'nizi buraya yapıştırın (/exec ile bitmelidir!)
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxCWYD5URL6w8q08NAr2fq6t87QtABPMmJFVJ4EA_U/exec";
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwY5enhlw-WYmZGqyx7feOjQFas-JDsjWB_XOJOuKzAjVAfcF4pxm8uvJFJ47nFy_vi/exec";
 
 const i18n = {
   en: { nav_home: "Home", nav_games: "Games", nav_anime: "Anime", nav_manga: "Manga", nav_movies_tv: "Movies & TV", nav_books: "Books", login: "Login", home_welcome: "My Media Collection", columns: "Columns", import: "Import Data" },
