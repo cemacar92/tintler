@@ -543,7 +543,6 @@ tbody tr:last-child td{border-bottom:none}
         <div>
           <div class="sub-h" data-i18n="home.feed">Activity</div>
           <div class="feed" id="feed"></div>
-          <div class="loadmore" id="feedMore"></div>
         </div>
         <aside>
           <div class="sub-h" data-i18n="home.profiles">Profiles</div>
@@ -789,9 +788,19 @@ for (const id of SEC_IDS){
   s.protect = s.local.slice();                       // never overwritten on import
 }
 
-/* Accounts shown on the home page. Usernames live in the Sheet's settings. */
-const PLATFORMS = ['Steam','PlayStation Network','Xbox','Nintendo','Epic Games','GOG',
-                   'Backloggd','MyAnimeList','IMDb','Goodreads','Letterboxd','Trakt'];
+/* Accounts shown on the home page. Usernames live in the Sheet's settings;
+   these are the starting values, used until something is saved over them. */
+const PLATFORMS = ['PlayStation Network','Xbox','Nintendo','Steam','Epic Games','GOG',
+                   'Origin','Uplay','MyAnimeList','IMDb','Goodreads','Backloggd'];
+const DEFAULT_PROFILES = {
+  'PlayStation Network':'TintlerTR',
+  'Xbox':'Tintler',
+  'Nintendo':'Tintler',
+  'Epic Games':'Tintler',
+  'GOG':'Tintler',
+  'Origin':'Tintler',
+  'Uplay':'Tintler'
+};
 
 /* ---------- 2. TRANSLATIONS ------------------------------------------ */
 const I18N = {
@@ -975,6 +984,11 @@ function compareCells(a, b, dir){
 const yearOf = v => { const m = String(v||'').match(/(19|20)\d{2}/); return m?+m[0]:null; };
 const nz = v => v!=null && v!=='' && v!=='0000-00-00';
 
+/* An empty settings record means "never filled in", so show the known ones. */
+function withDefaultProfiles(saved){
+  return (saved && Object.keys(saved).length) ? saved : Object.assign({}, DEFAULT_PROFILES);
+}
+
 function toast(msg, kind){
   const el = document.createElement('div');
   el.className = 'toast '+(kind||'');
@@ -1017,14 +1031,14 @@ const API = {
         const o = {}; pack.headers.forEach((h,i)=> o[h] = row[i]); return o;
       }) : [];
     });
-    S.settings = json.settings || {};
+    S.settings = withDefaultProfiles(json.settings);
     this.cache();
     return true;
   },
 
   loadLocal(){
     SEC_IDS.forEach(id=> S.data[id] = LS.get('local.'+id, []));
-    S.settings = LS.get('local.settings', {});
+    S.settings = withDefaultProfiles(LS.get('local.settings', null));
     return true;
   },
 
@@ -1040,7 +1054,7 @@ const API = {
       const c = JSON.parse(localStorage.getItem('backlog.cache')||'null');
       if(!c) return false;
       SEC_IDS.forEach(id=> S.data[id] = c[id]||[]);
-      S.settings = c.settings || {};
+      S.settings = withDefaultProfiles(c.settings);
       return true;
     }catch(e){ return false; }
   },
@@ -1269,9 +1283,11 @@ function renderHome(){
   /* Spines carry a faint collage of that shelf's best-rated covers. */
   $('#shelf').innerHTML = SEC_IDS.map(id=>{
     const s = SECTIONS[id], n = S.data[id].length;
-    const art = S.data[id]
-      .filter(r=> nz(r.Cover) && numOf(r[s.score])>0)
-      .sort((a,b)=> (numOf(b[s.score])||0)-(numOf(a[s.score])||0))
+    /* Same order as sorting that shelf by score, best first; the top four
+       that actually have artwork are the ones shown. */
+    const art = S.data[id].slice()
+      .sort((a,b)=> compareCells(a[s.score], b[s.score], -1))
+      .filter(r=> nz(r.Cover))
       .slice(0,4)
       .map(r=>`<img src="${esc(r.Cover)}" alt="" loading="lazy">`).join('');
     return `<button class="spine" data-go="${id}" style="--sp:${s.color};--sp-tint:${s.color}22">
@@ -1310,7 +1326,7 @@ const FEED_DATES = {
   screen: ['Date Rated','Modified','Created'],
   books:  ['Date Read','Date Added']
 };
-let feedShown = 40;
+const FEED_LIMIT = 10;
 
 function feedItems(){
   const out = [];
@@ -1342,8 +1358,7 @@ function feedBits(it){
 }
 
 function renderFeed(){
-  const items = feedItems();
-  const shown = items.slice(0, feedShown);
+  const shown = feedItems().slice(0, FEED_LIMIT);
   $('#feed').innerHTML = shown.length ? shown.map(it=>{
     const {s, r, id} = it;
     const sc = numOf(r[s.score]);
@@ -1366,10 +1381,6 @@ function renderFeed(){
     if(rec) openDetail(b.dataset.sec, rec);
   });
 
-  $('#feedMore').innerHTML = items.length>feedShown
-    ? `<button class="btn" id="feedMoreBtn">${esc(t('loadMore'))} · ${feedShown}/${items.length}</button>` : '';
-  const fm = $('#feedMoreBtn');
-  if(fm) fm.onclick = ()=>{ feedShown += 60; renderFeed(); };
 }
 
 /* ---------- 8c. PLATFORM ACCOUNTS ------------------------------------ */
