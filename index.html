@@ -796,10 +796,12 @@ const DEFAULT_PROFILES = {
   'PlayStation Network':'TintlerTR',
   'Xbox':'Tintler',
   'Nintendo':'Tintler',
+  'Steam':'Tintler',
   'Epic Games':'Tintler',
   'GOG':'Tintler',
   'Origin':'Tintler',
-  'Uplay':'Tintler'
+  'Uplay':'Tintler',
+  'MyAnimeList':'Tintler'
 };
 
 /* ---------- 2. TRANSLATIONS ------------------------------------------ */
@@ -996,6 +998,26 @@ function toast(msg, kind){
   $('#toasts').appendChild(el);
   setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),320); }, 3200);
 }
+/* Playtime arrives from the game export in minutes; nobody thinks in minutes. */
+const MINUTE_FIELDS = {games:['Playtime']};
+function fmtHours(mins){
+  const n = numOf(mins);
+  if(n==null) return '';
+  const h = n/60;
+  if(h===0) return '0 h';
+  return (h>=10 ? Math.round(h) : Math.round(h*10)/10) + ' h';
+}
+function isMinuteField(secId, col){
+  return (MINUTE_FIELDS[secId]||[]).includes(col);
+}
+/* What a column is called on screen, when that differs from the sheet. */
+function colLabel(secId, col){
+  return isMinuteField(secId, col) ? col+' (h)' : col;
+}
+function fmtCell(secId, col, value){
+  return isMinuteField(secId, col) ? fmtHours(value) : (value==null?'':value);
+}
+
 function tintFor(str){
   let h=0; const s=String(str||'?');
   for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0;
@@ -1524,7 +1546,7 @@ function listHTML(secId, rows){
   const s = SECTIONS[secId], cols = S.cols[secId].filter(c=> s.columns.includes(c));
   const head = cols.map(c=>{
     const on = S.sort[secId].by===c;
-    return `<th data-col="${esc(c)}">${esc(c==='Cover'?'':c)}${on?`<span class="sort-i">${S.sort[secId].dir===1?'▲':'▼'}</span>`:''}</th>`;
+    return `<th data-col="${esc(c)}">${esc(c==='Cover'?'':colLabel(secId,c))}${on?`<span class="sort-i">${S.sort[secId].dir===1?'▲':'▼'}</span>`:''}</th>`;
   }).join('');
   const body = rows.map(r=>{
     const tds = cols.map(c=>{
@@ -1533,9 +1555,9 @@ function listHTML(secId, rows){
           :`<div class="t-thumb" style="background:${tintFor(r[s.title])}"></div>`}</td>`;
       }
       if(c==='Favorite') return `<td class="right">${(String(r.Favorite)==='true'||r.Favorite==='TRUE'||r.Favorite==='Yes')?'★':''}</td>`;
-      const v = r[c];
+      const v = r[c], shown = fmtCell(secId, c, v);
       const isNum = numOf(v)!=null && /rating|score|episode|chapter|volume|page|year|playtime|runtime|votes|times|season/i.test(c);
-      return `<td class="${isNum?'num':''}" title="${esc(v)}">${esc(v==null?'':v)}</td>`;
+      return `<td class="${isNum?'num':''}" title="${esc(shown)}">${esc(shown)}</td>`;
     }).join('');
     return `<tr data-id="${esc(r._id)}">${tds}</tr>`;
   }).join('');
@@ -1672,10 +1694,11 @@ function openDetail(secId, rec, isNew){
   const topKeys = tops.map(f=>f.k);
   const importedHTML = S.auth
     ? `<div class="form-grid">${s.imported.filter(c=> !topKeys.includes(c)).map(c=>
-        `<div class="field ${/comment|review|description|notes/i.test(c)?'wide':''}"><label>${esc(c)}</label>
-         <input type="text" data-k="${esc(c)}" value="${esc(r[c]||'')}"></div>`).join('')}</div>`
+        `<div class="field ${/comment|review|description|notes/i.test(c)?'wide':''}"><label>${esc(c)}${isMinuteField(secId,c)?' — min':''}</label>
+         <input type="text" data-k="${esc(c)}" value="${esc(r[c]||'')}">
+         ${isMinuteField(secId,c)?`<span class="mono muted" style="font-size:10.5px">= ${esc(fmtHours(r[c]))}</span>`:''}</div>`).join('')}</div>`
     : `<dl class="kv">${s.imported.filter(c=> !topKeys.includes(c) && nz(r[c])).map(c=>
-        `<dt>${esc(c)}</dt><dd>${esc(r[c])}</dd>`).join('')}</dl>`;
+        `<dt>${esc(colLabel(secId,c))}</dt><dd>${esc(fmtCell(secId,c,r[c]))}</dd>`).join('')}</dl>`;
 
   $('#dtBody').innerHTML = `
     <div class="detail-top">
